@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>DeltaViz Ultra - Analizador Geométrico Pro</title>
+    <style>
+        :root {
+            --neon-blue: #00f2fe;
+            --neon-purple: #9d50bb;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            max-width: 1100px;
+            width: 95%;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .instruction-banner {
+            background: linear-gradient(90deg, #ff416c, #ff4b2b);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        h1 { text-align: center; margin: 0 0 20px 0; color: var(--neon-blue); text-transform: uppercase; letter-spacing: 2px; }
+
+        .layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 40px; }
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        label { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; display: block; font-weight: 600; }
+        input {
+            width: 100%;
+            background: #0f172a;
+            border: 2px solid #334155;
+            padding: 14px;
+            border-radius: 14px;
+            color: white;
+            font-weight: bold;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--neon-blue); outline: none; }
+
+        .btn-main {
+            grid-column: span 2;
+            padding: 18px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: transform 0.2s;
+        }
+        .btn-main:hover { transform: scale(1.02); }
+
+        .visual-box {
+            background: #0f172a;
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .label-side { fill: #ffffff; font-weight: bold; font-size: 16px; }
+        .label-angle { fill: var(--neon-blue); font-weight: bold; font-size: 14px; opacity: 0.9; }
+
+        .type-tag {
+            margin-top: 20px;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            background: rgba(0, 242, 254, 0.1);
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            display: none;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="instruction-banner">
+        ⚠️ REQUERIDO: INTRODUCIR AL MENOS 2 LADOS Y 1 ÁNGULO, O LOS 3 LADOS.
+    </div>
+
+    <h1>Calculadora Dinámica de Triángulos</h1>
+
+    <div class="layout">
+        <div class="input-grid">
+            <div><label>Lado (a)</label><input type="number" id="a" step="any" placeholder="Ej: 10"></div>
+            <div><label>Ángulo (A°)</label><input type="number" id="A_ang" step="any" placeholder="Ej: 60"></div>
+            <div><label>Lado (b)</label><input type="number" id="b" step="any" placeholder="Ej: 10"></div>
+            <div><label>Ángulo (B°)</label><input type="number" id="B_ang" step="any" placeholder="Ej: 60"></div>
+            <div><label>Lado (c)</label><input type="number" id="c" step="any" placeholder="Ej: 10"></div>
+            <div><label>Ángulo (C°)</label><input type="number" id="C_ang" step="any" placeholder="Ej: 60"></div>
+            <button class="btn-main" onclick="solve()">Calcular y Analizar</button>
+        </div>
+
+        <div class="visual-box">
+            <svg width="400" height="300" viewBox="0 0 400 300">
+                <polygon id="poly" points="" fill="rgba(0, 242, 254, 0.15)" stroke="var(--neon-blue)" stroke-width="4"/>
+                
+                <!-- Etiquetas de Lados -->
+                <text id="la" class="label-side"></text>
+                <text id="lb" class="label-side"></text>
+                <text id="lc" class="label-side"></text>
+
+                <!-- Etiquetas de Ángulos -->
+                <text id="angA" class="label-angle"></text>
+                <text id="angB" class="label-angle"></text>
+                <text id="angC" class="label-angle"></text>
+            </svg>
+            <div id="typeInfo" class="type-tag"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const toRad = (d) => d * Math.PI / 180;
+    const toDeg = (r) => r * 180 / Math.PI;
+
+    function solve() {
+        let a = parseFloat(document.getElementById('a').value);
+        let b = parseFloat(document.getElementById('b').value);
+        let c = parseFloat(document.getElementById('c').value);
+        let A = parseFloat(document.getElementById('A_ang').value);
+        let B = parseFloat(document.getElementById('B_ang').value);
+        let C = parseFloat(document.getElementById('C_ang').value);
+
+        const filled = [a, b, c, A, B, C].filter(v => !isNaN(v)).length;
+        if (filled < 3) return alert("Por favor, ingresa al menos 3 datos.");
+
+        try {
+            if (!isNaN(a) && !isNaN(b) && !isNaN(c)) {
+                A = toDeg(Math.acos((b*b + c*c - a*a) / (2*b*c)));
+                B = toDeg(Math.acos((a*a + c*c - b*b) / (2*a*c)));
+                C = 180 - A - B;
+            } else if (!isNaN(a) && !isNaN(b) && !isNaN(C)) {
+                c = Math.sqrt(a*a + b*b - 2*a*b*Math.cos(toRad(C)));
+                A = toDeg(Math.acos((b*b + c*c - a*a) / (2*b*c)));
+                B = 180 - A - C;
+            } else if (!isNaN(A) && !isNaN(B) && !isNaN(c)) {
+                C = 180 - A - B;
+                a = (c * Math.sin(toRad(A))) / Math.sin(toRad(C));
+                b = (c * Math.sin(toRad(B))) / Math.sin(toRad(C));
+            } else {
+                return alert("Caso no soportado. Intenta con 3 lados o Lado-Ángulo-Lado.");
+            }
+
+            if (isNaN(A) || A <= 0 || (A+B+C) > 180.1) throw new Error();
+            draw(a, b, c, A, B, C);
+        } catch (e) { alert("Error: No es un triángulo posible."); }
+    }
+
+    function draw(a, b, c, A, B, C) {
+        const scale = 220 / Math.max(a, b, c);
+        const sa = a * scale, sb = b * scale, sc = c * scale;
+
+        const x1 = 80, y1 = 240; // Vértice A (opuesto a lado 'a')
+        const x2 = x1 + sc, y2 = 240; // Vértice B (opuesto a lado 'b')
+        const x3 = x1 + sb * Math.cos(toRad(A));
+        const y3 = y1 - sb * Math.sin(toRad(A));
+
+        document.getElementById('poly').setAttribute("points", `${x1},${y1} ${x2},${y2} ${x3},${y3}`);
+
+        // Lados
+        setText('la', (x2 + x3)/2 + 15, (y2 + y3)/2, "a");
+        setText('lb', (x1 + x3)/2 - 25, (y1 + y3)/2, "b");
+        setText('lc', (x1 + x2)/2, y1 + 30, "c");
+
+        // Ángulos (Cerca de los vértices)
+        setText('angA', x1 + 10, y1 - 5, "A");
+        setText('angB', x2 - 20, y2 - 5, "B");
+        setText('angC', x3, y3 + 25, "C");
+
+        const sType = (Math.abs(a-b)<0.1 && Math.abs(b-c)<0.1) ? "Equilátero" : (a==b||b==c||a==c) ? "Isósceles" : "Escaleno";
+        const aType = Math.max(A,B,C) > 90.5 ? "Obtusángulo" : Math.max(A,B,C) > 89.5 ? "Rectángulo" : "Acutángulo";
+        
+        const tag = document.getElementById('typeInfo');
+        tag.style.display = "block";
+        tag.innerHTML = `<strong>TIPO:</strong> ${sType} ${aType}<br><small>Lados: ${a.toFixed(1)}, ${b.toFixed(1)}, ${c.toFixed(1)} | Ángulos: ${A.toFixed(1)}°, ${B.toFixed(1)}°, ${C.toFixed(1)}°</small>`;
+    }
+
+    function setText(id, x, y, txt) {
+        const el = document.getElementById(id);
+        el.setAttribute("x", x);
+        el.setAttribute("y", y);
+        el.textContent = txt;
+    }
+</script>
+</body>
+</html>
